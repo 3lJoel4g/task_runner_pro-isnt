@@ -9,6 +9,8 @@ Implementación de un sistema de gestión y ejecución de tareas en segundo plan
 * **Gonzalez Aguilar Joel Alejandro** - gonzalez.joel@alumnos.udg.mx
 * **Elisea Saavedra Samuel Alejandro** - samuel.elisea1143@alumnos.udg.mx
 * **Galindo Parra Javier Alberto** - javier.galindo2212@alumnos.udg.mx
+* **Pánuco Rodriguez David de Jesús** -
+david.panuco@alumnos.udg.mx
 
 ## Matriz de Responsabilidades y Roles
 | Área | Responsable Principal | Revisor / Backup |
