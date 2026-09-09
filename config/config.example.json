@@ -1,0 +1,5 @@
+{
+  "max_workers": 4,
+  "queue_backend": "memory",
+  "log_level": "INFO"
+}
