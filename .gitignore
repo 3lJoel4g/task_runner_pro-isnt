@@ -1,5 +1,12 @@
-__pycache__/
-*.pyc
-.env
-venv/
+# Build artifacts
+build/
+*.o
+*.out
 *.log
+
+# Editor / IDE
+.vscode/
+*.swp
+
+# OS
+.DS_Store
