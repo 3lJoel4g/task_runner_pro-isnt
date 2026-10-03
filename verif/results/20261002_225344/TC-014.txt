@@ -1,0 +1,9 @@
+=== JobRunner (max simultáneos: 4) — escribe help ===
+OK id=1
+id=1 estado=FAILED pid=2163 exit=7 cmd=sh -c echo uno; echo dos >&2; exit 7
+--- stdout (4 bytes) ---
+uno
+--- stderr (4 bytes) ---
+dos
+
+=== JobRunner terminado ===

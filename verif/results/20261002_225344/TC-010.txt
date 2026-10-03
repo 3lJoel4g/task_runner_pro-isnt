@@ -1,0 +1,13 @@
+=== JobRunner (max simultáneos: 4) — escribe help ===
+ERROR: comando desconocido 'foo' (escribe help)
+ERROR: uso: submit <comando> [args...]
+ERROR: uso: status <id>
+ERROR: uso: status <id>
+ERROR: uso: cancel <id>
+ERROR: comillas sin cerrar
+OK id=1
+--- stdout (5 bytes) ---
+vivo
+--- stderr (0 bytes) ---
+
+=== JobRunner terminado ===

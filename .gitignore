@@ -3,6 +3,7 @@ build/
 *.o
 *.out
 *.log
+src/server
 
 # Editor / IDE
 .vscode/

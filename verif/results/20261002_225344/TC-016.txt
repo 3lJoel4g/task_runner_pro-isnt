@@ -1,0 +1,5 @@
+=== JobRunner (max simultáneos: 4) — escribe help ===
+OK id=1
+id=1 estado=FAILED pid=2188 exit=137 (señal 9: Killed) cmd=sh -c kill -9 $$
+
+=== JobRunner terminado ===

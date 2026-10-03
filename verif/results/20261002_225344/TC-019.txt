@@ -1,0 +1,1 @@
+uso: /mnt/c/Users/ddjpr/task_runner_pro-isnt/src/server [max_trabajos_simultaneos (1-64)]

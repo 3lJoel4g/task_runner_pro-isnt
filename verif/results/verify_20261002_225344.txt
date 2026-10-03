@@ -1,0 +1,127 @@
+JobRunner — verificación 20261002_225344
+commit: ec13e88  |  Linux 6.18.40.1-microsoft-standard-WSL2  |  g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+
+== BUILD: make clean && make
+   ok    - compila con -Wall -Wextra -Werror
+
+== TC-001: Enviar trabajos devuelve un ID único e incremental
+   ok    - primer trabajo recibe id=1
+   ok    - segundo trabajo recibe id=2
+   ok    - tercer trabajo recibe id=3
+   => TC-001 PASA
+
+== TC-002: Trabajo exitoso: SUCCEEDED, exit 0, stdout capturado
+   ok    - estado SUCCEEDED
+   ok    - código de salida 0
+   ok    - stdout capturado
+   => TC-002 PASA
+
+== TC-003: Trabajo que falla: FAILED, exit distinto de 0, stderr capturado
+   ok    - estado FAILED
+   ok    - código de salida 2 (el de ls)
+   ok    - stderr capturado
+   => TC-003 PASA
+
+== TC-004: Comando inexistente: FAILED/127 y el servicio sigue vivo
+   ok    - el comando inexistente termina FAILED
+   ok    - código 127 (convención 'command not found')
+   ok    - el servicio siguió aceptando y ejecutando trabajos
+   ok    - el trabajo posterior produjo su salida
+   ok    - el servicio terminó de forma ordenada
+   => TC-004 PASA
+
+== TC-005: Consultar estado: trabajo existente e inexistente
+   ok    - RUNNING muestra pid y exit '-'
+   ok    - id inexistente => ERROR sin caerse
+   => TC-005 PASA
+
+== TC-006: Listar trabajos
+   ok    - encabezado de la tabla
+   ok    - fila del trabajo 1
+   ok    - fila del trabajo 2
+   ok    - fila del trabajo 3
+   => TC-006 PASA
+
+== TC-007: Cancelar un trabajo en ejecución (SIGTERM => CANCELED, 143)
+   ok    - se envió SIGTERM
+   ok    - estado final CANCELED
+   ok    - código 143 = 128 + SIGTERM(15)
+   => TC-007 PASA
+
+== TC-008: Cancelar un trabajo que ignora SIGTERM (escala a SIGKILL, 137)
+   ok    - 1 s después del SIGTERM sigue vivo (lo ignoró)
+   ok    - tras el plazo muere por SIGKILL (137)
+   => TC-008 PASA
+
+== TC-009: Cancelar trabajo ya terminado o inexistente => error, sin caerse
+   ok    - cancelar uno terminado
+   ok    - cancelar uno inexistente
+   ok    - id no numérico
+   ok    - el estado del trabajo terminado no cambió
+   => TC-009 PASA
+
+== TC-010: Entradas inválidas no terminan el servicio
+   ok    - comando desconocido
+   ok    - submit sin argumentos
+   ok    - status sin id / id inválido
+   ok    - comillas sin cerrar
+   ok    - las entradas inválidas NO consumieron IDs
+   ok    - tras todo eso el servicio sigue ejecutando trabajos
+   => TC-010 PASA
+
+== TC-011: Cola con límite de concurrencia (QUEUED) y cancelación en cola
+   ok    - con límite 1, el primero corre
+   ok    - el segundo espera en QUEUED (sin pid)
+   ok    - cancelar uno en cola
+   ok    - CANCELED sin haber tenido proceso
+   ok    - el primero terminó normalmente
+   => TC-011 PASA
+
+== TC-012: Salida grande no bloquea al servicio (sin deadlock de pipes)
+   ok    - 300 KB a stderr: el trabajo termina
+   ok    - 2 MB a stdout: el trabajo termina
+   ok    - stderr capturado completo
+   => TC-012 PASA
+
+== TC-013: Solicitud duplicada de un trabajo activo (ADR-0002)
+   ok    - idéntico y activo => devuelve el ID existente
+   ok    - idéntico pero el previo ya terminó => ID nuevo
+   => TC-013 PASA
+
+== TC-014: stdout y stderr se capturan por separado
+   ok    - exit code 7 propagado tal cual
+   ok    - 'uno' llegó a stdout
+   ok    - 'dos' NO está en stdout
+   ok    - 'dos' llegó a stderr
+   => TC-014 PASA
+
+== TC-015: Cada trabajo corre como proceso separado (padre = servidor)
+   ok    - el proceso padre del trabajo se llama 'server'
+   ok    - el trabajo tiene PID propio, distinto del servidor (2175 vs 2174)
+   ok    - el pid que reporta 'status' (2175) es el del proceso hijo (2175)
+   => TC-015 PASA
+
+== TC-016: Muerte por señal ajena (sin cancel) => FAILED, 128+señal
+   ok    - murió por SIGKILL sin que se pidiera cancelar
+   => TC-016 PASA
+
+== TC-017: quit termina los trabajos activos (sin procesos huérfanos)
+   ok    - el servicio terminó
+   ok    - no quedan procesos 'sleep 7123/7124' (ni los nietos)
+   => TC-017 PASA
+
+== TC-018: SIGINT al servidor: apagado ordenado, sin huérfanos
+   ok    - el servicio atendió SIGINT y terminó
+   ok    - no queda 'sleep 7125' huérfano
+   => TC-018 PASA
+
+== TC-019: Argumento inválido de arranque no deja el servicio en estado raro
+   ok    - muestra el uso
+   ok    - termina con código 2 (rc=2)
+   => TC-019 PASA
+
+================================================================
+RESULTADO: 19/19 casos pasan
+TODOS LOS CASOS PASAN
+Evidencia: /mnt/c/Users/ddjpr/task_runner_pro-isnt/verif/results/verify_20261002_225344.txt
+Salida cruda por caso: /mnt/c/Users/ddjpr/task_runner_pro-isnt/verif/results/20261002_225344/

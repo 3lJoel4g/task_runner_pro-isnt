@@ -1,0 +1,11 @@
+=== JobRunner (max simultáneos: 4) — escribe help ===
+OK id=1
+OK id=2
+OK id=3
+ID   ESTADO     PID     EXIT                        COMANDO
+1    SUCCEEDED  2067    0                           echo uno
+2    FAILED     2068    2                           ls /no_existe
+3    RUNNING    2069    -                           sleep 3
+OK cancelación solicitada para el trabajo 3 (SIGTERM enviado)
+
+=== JobRunner terminado ===

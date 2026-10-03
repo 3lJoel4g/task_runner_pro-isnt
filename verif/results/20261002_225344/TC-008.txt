@@ -1,0 +1,7 @@
+=== JobRunner (max simultáneos: 4) — escribe help ===
+OK id=1
+OK cancelación solicitada para el trabajo 1 (SIGTERM enviado)
+id=1 estado=RUNNING pid=2090 exit=- cmd=/mnt/c/Users/ddjpr/task_runner_pro-isnt/verif/results/20261002_225344/ignora_term.sh
+id=1 estado=CANCELED pid=2090 exit=137 (señal 9: Killed) cmd=/mnt/c/Users/ddjpr/task_runner_pro-isnt/verif/results/20261002_225344/ignora_term.sh
+
+=== JobRunner terminado ===

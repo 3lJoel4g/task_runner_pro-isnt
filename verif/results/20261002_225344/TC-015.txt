@@ -1,0 +1,9 @@
+=== JobRunner (max simultáneos: 4) — escribe help ===
+OK id=1
+id=1 estado=SUCCEEDED pid=2175 exit=0 cmd=sh -c echo MIPID=$$ PADRE=$PPID; cat /proc/$PPID/comm
+--- stdout (29 bytes) ---
+MIPID=2175 PADRE=2174
+server
+--- stderr (0 bytes) ---
+
+=== JobRunner terminado ===

@@ -1,0 +1,11 @@
+=== JobRunner (max simultáneos: 4) — escribe help ===
+OK id=1
+OK id=1 (duplicado: ya existe un trabajo activo idéntico)
+OK cancelación solicitada para el trabajo 1 (SIGTERM enviado)
+OK id=2
+OK cancelación solicitada para el trabajo 2 (SIGTERM enviado)
+ID   ESTADO     PID     EXIT                        COMANDO
+1    CANCELED   2151    143 (señal 15: Terminated) sleep 20
+2    CANCELED   2154    143 (señal 15: Terminated) sleep 20
+
+=== JobRunner terminado ===
