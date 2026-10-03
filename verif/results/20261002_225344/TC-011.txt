@@ -1,0 +1,11 @@
+=== JobRunner (max simultáneos: 1) — escribe help ===
+OK id=1
+OK id=2
+ID   ESTADO     PID     EXIT                        COMANDO
+1    RUNNING    2126    -                           sleep 2
+2    QUEUED     -       -                           sleep 3
+OK trabajo 2 cancelado (estaba en cola)
+id=2 estado=CANCELED pid=- exit=- cmd=sleep 3
+id=1 estado=SUCCEEDED pid=2126 exit=0 cmd=sleep 2
+
+=== JobRunner terminado ===

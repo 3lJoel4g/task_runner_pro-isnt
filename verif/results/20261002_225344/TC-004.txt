@@ -1,0 +1,10 @@
+=== JobRunner (max simultáneos: 4) — escribe help ===
+OK id=1
+id=1 estado=FAILED pid=2045 exit=127 cmd=comando_que_no_existe_xyz
+OK id=2
+id=2 estado=SUCCEEDED pid=2047 exit=0 cmd=echo sigo_vivo
+--- stdout (10 bytes) ---
+sigo_vivo
+--- stderr (0 bytes) ---
+
+=== JobRunner terminado ===

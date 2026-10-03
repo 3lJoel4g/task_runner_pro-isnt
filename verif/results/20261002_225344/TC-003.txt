@@ -1,0 +1,8 @@
+=== JobRunner (max simultáneos: 4) — escribe help ===
+OK id=1
+id=1 estado=FAILED pid=2036 exit=2 cmd=ls /ruta_que_no_existe
+--- stdout (0 bytes) ---
+--- stderr (67 bytes) ---
+ls: cannot access '/ruta_que_no_existe': No such file or directory
+
+=== JobRunner terminado ===

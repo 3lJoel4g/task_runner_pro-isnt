@@ -1,0 +1,6 @@
+JobRunner — verificación 20261002_225214
+commit: ec13e88  |  MINGW64_NT-10.0-22631 3.5.7-463ebcdc.x86_64  |  g++.exe (Rev1, Built by MSYS2 project) 14.2.0
+
+== BUILD: make clean && make
+./verif/scripts/verify.sh: line 77: make: command not found
+FALLA: no compiló

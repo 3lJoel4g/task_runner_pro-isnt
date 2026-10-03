@@ -1,0 +1,8 @@
+=== JobRunner (max simultáneos: 4) — escribe help ===
+OK id=1
+id=1 estado=SUCCEEDED pid=2027 exit=0 cmd=echo hola mundo
+--- stdout (11 bytes) ---
+hola mundo
+--- stderr (0 bytes) ---
+
+=== JobRunner terminado ===

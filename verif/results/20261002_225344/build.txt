@@ -1,0 +1,6 @@
+make: Entering directory '/mnt/c/Users/ddjpr/task_runner_pro-isnt/src'
+rm -f server
+make: Leaving directory '/mnt/c/Users/ddjpr/task_runner_pro-isnt/src'
+make: Entering directory '/mnt/c/Users/ddjpr/task_runner_pro-isnt/src'
+g++ -Wall -Wextra -Werror -std=c++17 -o server server.cpp
+make: Leaving directory '/mnt/c/Users/ddjpr/task_runner_pro-isnt/src'

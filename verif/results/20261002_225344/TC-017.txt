@@ -1,0 +1,5 @@
+=== JobRunner (max simultáneos: 4) — escribe help ===
+OK id=1
+OK id=2
+
+=== JobRunner terminado ===

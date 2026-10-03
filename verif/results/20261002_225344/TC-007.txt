@@ -1,0 +1,6 @@
+=== JobRunner (max simultáneos: 4) — escribe help ===
+OK id=1
+OK cancelación solicitada para el trabajo 1 (SIGTERM enviado)
+id=1 estado=CANCELED pid=2080 exit=143 (señal 15: Terminated) cmd=sleep 30
+
+=== JobRunner terminado ===
