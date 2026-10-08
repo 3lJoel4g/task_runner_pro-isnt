@@ -6,13 +6,13 @@ Cada fila asocia un requisito con su(s) caso(s) de prueba, evidencia y estado.
 
 | RF    | Descripción breve                                  | TC(s)       | Evidencia                          | Estado |
 |-------|----------------------------------------------------|-------------|------------------------------------|--------|
-| RF-01 | Aceptar comando+args, devolver ID                  | TC-001      | (pendiente)                        | ⏳     |
-| RF-02 | Validar solicitudes malformadas                    | TC-001      | (pendiente)                        | ⏳     |
+| RF-01 | Aceptar comando+args, devolver ID                  | TC-001      | verif/results/<run-id>/tc-001.log  | ✅     |
+| RF-02 | Validar solicitudes malformadas                    | TC-001      | verif/results/<run-id>/tc-001.log  | ✅     |
 | RF-03 | Cola de espera                                     | TC-002      | (pendiente)                        | ⏳     |
 | RF-04 | Ejecución en procesos separados                    | TC-006      | verif/results/20261008-031343/     | ✅     |
 | RF-05 | Límite configurable de concurrencia                | TC-002      | (pendiente)                        | ⏳     |
 | RF-06 | Estados obligatorios del ciclo de vida             | TC-003, TC-006 | verif/results/20261008-031343/  | ✅     |
-| RF-07 | Timestamps y exit code                             | TC-003, TC-006 | verif/results/20261008-031343/  | ✅     |
+| RF-07 | Timestamps y exit code                             | TC-003, TC-006, TC-001 | verif/results/<run-id>/ | ✅     |
 | RF-08 | Consultar estado por ID                            | TC-004      | (pendiente)                        | ⏳     |
 | RF-09 | Listar con filtros                                 | TC-004      | (pendiente)                        | ⏳     |
 | RF-10 | Cancelación                                        | TC-005      | (pendiente)                        | ⏳     |
