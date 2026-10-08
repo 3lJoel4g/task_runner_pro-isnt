@@ -1,0 +1,13 @@
+### Entrada 001 — [08/10/2026] — Detección de deadlock en lectura de pipes
+- **Herramienta:** Asistente IA (auditoría técnica).
+- **Prompt:** "Audita execute_job() en server.cpp: ¿es correcta la lectura
+  secuencial de stdout y stderr con dos pipes anónimos?"
+- **Resultado de la IA:** Señaló que leer `stdout` completo antes de
+  empezar a leer `stderr` provoca interbloqueo si el hijo escribe más
+  de 64 KiB en `stderr` (buffer del pipe) mientras el padre sigue
+  bloqueado en `read(out_pipe[0])`.
+- **Estado:** RECHAZADO como solución propuesta por IA (una respuesta previa
+  sugería leer secuencialmente sin multiplexación).
+- **Justificación técnica:** Viola RF-11 y RNF-08. La corrección exige
+  `poll()`/`epoll()` o dos hilos de lectura. Ver ADR-0002.
+- **Acción tomada:** Refactor con `poll()` (pendiente Hito 1).
