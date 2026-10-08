@@ -1,121 +1,88 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
-#include <unistd.h>
-#include <sys/wait.h>
+#include <string>
 #include <vector>
-#include <array>
+
+#include <time.h>
+
+#include "exec_job.h"
 #include "job.h"
 
-std::vector<char*> prepare_args(const std::string& cmd, const std::vector<std::string>& args) {
-    std::vector<char*> c_args;
-    c_args.push_back(const_cast<char*>(cmd.c_str()));
-    for (const auto& arg : args) {
-        c_args.push_back(const_cast<char*>(arg.c_str()));
-    }
-    c_args.push_back(nullptr);
-    return c_args;
+namespace {
+
+std::int64_t now_ns() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return static_cast<std::int64_t>(ts.tv_sec) * 1'000'000'000LL
+         + static_cast<std::int64_t>(ts.tv_nsec);
 }
 
-void execute_job(Job& job) {
-    job.state = JobState::RUNNING;
-    std::cout << "[Servidor] Iniciando Job ID " << job.id << ": " << job.command << "\n";
-
-    int out_pipe[2], err_pipe[2];
-
-    if (pipe(out_pipe) == -1 || pipe(err_pipe) == -1) {
-        std::cerr << "[Servidor] Error al crear pipes\n";
-        job.state = JobState::FAILED;
-        return;
+void print_report(const Job& j) {
+    std::cout << "=== Job ID " << j.id << " ===\n"
+              << "  command   : " << j.command;
+    for (const auto& a : j.args) std::cout << ' ' << a;
+    std::cout << "\n"
+              << "  state     : " << job_state_to_string(j.state) << "\n"
+              << "  pid       : " << j.pid << "\n"
+              << "  exit_code : " << j.exit_code << "\n";
+    if (j.term_signal != 0) {
+        std::cout << "  signal    : " << j.term_signal << "\n";
     }
+    const std::int64_t dur_ms =
+        (j.finished_at_ns - j.started_at_ns) / 1'000'000LL;
+    std::cout << "  duration  : " << dur_ms << " ms\n"
+              << "  stdout    : [" << j.stdout_data.size() << " bytes]\n"
+              << "  stderr    : [" << j.stderr_data.size() << " bytes]\n";
 
-    pid_t pid = fork();
-
-    if (pid < 0) {
-        std::cerr << "[Servidor] Error al hacer fork()\n";
-        job.state = JobState::FAILED;
-        return;
+    if (!j.stdout_data.empty()) {
+        std::cout << "  --- stdout ---\n" << j.stdout_data;
+        if (j.stdout_data.back() != '\n') std::cout << "\n";
     }
-
-    if (pid == 0) {
-        // --- PROCESO HIJO (El Clon) ---
-        close(out_pipe[0]);
-        close(err_pipe[0]);
-
-        dup2(out_pipe[1], STDOUT_FILENO);
-        dup2(err_pipe[1], STDERR_FILENO);
-
-        close(out_pipe[1]);
-        close(err_pipe[1]);
-
-        std::vector<char*> c_args = prepare_args(job.command, job.args);
-        execvp(c_args[0], c_args.data());
-        
-        std::cerr << "Error interno: Comando no encontrado\n";
-        exit(EXIT_FAILURE); 
-    } else {
-        // --- PROCESO PADRE (El Creador) ---
-        job.pid = pid;
-        
-        close(out_pipe[1]);
-        close(err_pipe[1]);
-
-        char buffer[256];
-        ssize_t bytes_read;
-        std::string captured_stdout;
-        while ((bytes_read = read(out_pipe[0], buffer, sizeof(buffer) - 1)) > 0) {
-            buffer[bytes_read] = '\0';
-            captured_stdout += buffer;
-        }
-
-        std::string captured_stderr;
-        while ((bytes_read = read(err_pipe[0], buffer, sizeof(buffer) - 1)) > 0) {
-            buffer[bytes_read] = '\0';
-            captured_stderr += buffer;
-        }
-
-        close(out_pipe[0]);
-        close(err_pipe[0]);
-
-        int status;
-        waitpid(pid, &status, 0);
-
-        if (WIFEXITED(status)) {
-            job.exit_code = WEXITSTATUS(status);
-            job.state = (job.exit_code == 0) ? JobState::SUCCEEDED : JobState::FAILED;
-        } else {
-            job.state = JobState::FAILED;
-            job.exit_code = -1;
-        }
-
-        if (!captured_stdout.empty()) {
-            std::cout << "[Servidor] --- SALIDA NORMAL CAPTURADA ---\n" << captured_stdout;
-        }
-        if (!captured_stderr.empty()) {
-            std::cout << "[Servidor] --- ERRORES CAPTURADOS ---\n" << captured_stderr;
-        }
-        std::cout << "[Servidor] Job ID " << job.id << " finalizado. Código: " << job.exit_code << "\n";
+    if (!j.stderr_data.empty()) {
+        std::cout << "  --- stderr ---\n" << j.stderr_data;
+        if (j.stderr_data.back() != '\n') std::cout << "\n";
     }
 }
 
-int main() {
-    std::cout << "=== JobRunner Server Init ===\n";
+} // namespace
 
-    // Trabajo 1: Comando exitoso
-    Job test_job;
-    test_job.id = 1;
-    test_job.state = JobState::QUEUED;
-    test_job.command = "ls";
-    test_job.args = {"-l", "-a"};
-    execute_job(test_job);
+int main(int argc, char** argv) {
+    std::cout << "=== JobRunner Server Init (Hito 1, RF-11 con poll) ===\n";
 
-    std::cout << "\n";
+    // Modo demo (sin argumentos): reproduce los dos casos originales.
+    if (argc == 1) {
+        Job ok{};
+        ok.id = 1;
+        ok.command = "ls";
+        ok.args = {"-la"};
+        ok.received_at_ns = now_ns();
+        exec_job(ok);
+        print_report(ok);
 
-    // Trabajo 2: Comando que va a fallar a propósito
-    Job fail_job;
-    fail_job.id = 2;
-    fail_job.state = JobState::QUEUED;
-    fail_job.command = "ls";
-    fail_job.args = {"/ruta_que_no_existe"};
-    execute_job(fail_job);
+        Job fail{};
+        fail.id = 2;
+        fail.command = "ls";
+        fail.args = {"/ruta_que_no_existe"};
+        fail.received_at_ns = now_ns();
+        exec_job(fail);
+        print_report(fail);
 
-    return 0;
+        return 0;
+    }
+
+    // Modo un comando: ./server <cmd> [args...]
+    Job job{};
+    job.id = 1;
+    job.command = argv[1];
+    for (int i = 2; i < argc; ++i) {
+        job.args.emplace_back(argv[i]);
+    }
+    job.received_at_ns = now_ns();
+
+    exec_job(job);
+    print_report(job);
+
+    return (job.state == JobState::SUCCEEDED) ? 0 : 1;
 }
