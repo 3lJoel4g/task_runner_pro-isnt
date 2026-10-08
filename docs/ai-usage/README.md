@@ -23,3 +23,18 @@ de JobRunner (prompts clave, decisiones sugeridas, y validación humana aplicada
   verificado por `TC-006`, que provoca explícitamente >PIPE_BUF en ambos
   streams.
 - **Trazabilidad:** RF-07, RF-11, RNF-08, ADR-0002, TC-006.
+
+### Entrada 002 — Estrategia de recuperación ante merge accidental a main
+
+- **Contexto:** El PR #8 se mergeó por error a `main` en lugar de `develop`.
+  Se consultó a la IA cómo revertirlo.
+- **Resultado bruto de la IA:** Sugerencia inicial de `git push --force origin main`
+  para devolver `main` al estado previo.
+- **Estado:** **MODIFICADO** por el desarrollador (con guía del Tech Lead).
+- **Justificación técnica:** `main` es rama pública; reescribir su historia
+  puede romper clones y viola RNF-33. Se optó por la estrategia conservadora:
+  aceptar el commit en `main`, fast-forward de `develop` hacia `origin/main`,
+  documentar el incidente (`docs/incidents/INC-001.md`) y activar branch
+  protection para prevenirlo.
+- **Trazabilidad:** RNF-33, INC-001.
+
