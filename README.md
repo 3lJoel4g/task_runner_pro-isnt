@@ -11,3 +11,9 @@ con IPC, procesos, señales, persistencia y red privada.
 
 ## Estado
 🚧 Hito 0 — Inicio y línea base
+
+## Stack
+- Lenguaje: C++17 (g++)
+- Compilador: g++ ≥ 9 con -Wall -Wextra -Werror
+- Plataforma: Linux (POSIX)
+- Suite de pruebas: Bash, orquestada por `make test`
