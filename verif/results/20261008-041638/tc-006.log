@@ -1,0 +1,4 @@
+Caso 1 OK: captura separada
+Caso 2 OK: sin deadlock con >PIPE_BUF en ambos streams
+Caso 3 OK: exit code propagado
+PASS: TC-006 completo (RF-07, RF-11)

@@ -1,0 +1,7 @@
+OK: caso 1: comando válido aceptado con ID (RF-01)
+OK: caso 2: exit code del job propagado (RF-07)
+OK: caso 3: rechazo sin argumentos con mensaje útil (RF-02)
+OK: caso 4: rechazo de comando vacío (RF-02)
+OK: caso 5: comando inexistente tratado como job FAILED (RF-02)
+
+PASS: TC-001 (RF-01, RF-02)
