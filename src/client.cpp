@@ -52,3 +52,5 @@ int client_cancel(int argc, char** argv) {
 }
 
 int client_shutdown() { return one_shot("SHUTDOWN\n"); }
+
+int client_health() { return one_shot("HEALTH\n"); }

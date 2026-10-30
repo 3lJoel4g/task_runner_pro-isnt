@@ -28,6 +28,7 @@ void print_usage() {
         << "  server list [STATE]            lista trabajos\n"
         << "  server cancel <id>             solicita cancelación\n"
         << "  server shutdown                detiene el servicio\n"
+        << "  server health                  estado del daemon (workers/cola)\n"
         << "  server help                    esta ayuda\n";
 }
 
@@ -92,6 +93,7 @@ int main(int argc, char** argv) {
     if (cmd == "list")     return client_list(argc, argv);
     if (cmd == "cancel")   return client_cancel(argc, argv);
     if (cmd == "shutdown") return client_shutdown();
+    if (cmd == "health")   return client_health();
     if (cmd == "help" || cmd == "--help" || cmd == "-h") { print_usage(); return 0; }
 
     return run_legacy(argc, argv);

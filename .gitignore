@@ -26,3 +26,8 @@ verif/results/*
 # Python (aunque lo eliminemos, evitar residuos)
 __pycache__/
 *.pyc
+
+# Archivos generados en runtime
+config.json
+config.example.json
+data/
