@@ -1,7 +1,6 @@
 #include "daemon.h"
 
 #include <cerrno>
-#include <fcntl.h>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
@@ -10,9 +9,9 @@
 #include <string>
 #include <vector>
 
+#include <fcntl.h>
 #include <poll.h>
 #include <signal.h>
-#include <sys/stat.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -21,6 +20,8 @@
 #include "job.h"
 #include "job_registry.h"
 #include "job_runner.h"
+#include "persistence.h"
+#include "log.h"
 
 namespace {
 
@@ -59,22 +60,24 @@ std::string state_line(const Job& j) {
     return o.str();
 }
 
-// Intenta lanzar un job (sale de QUEUED, entra a RUNNING).
-// Si falla, deja el job en FAILED.
 bool try_spawn(JobRegistry& reg, Job& job) {
+    (void)reg;
     job.started_at_ns = now_ns();
     if (!job_runner::spawn(job)) {
         job.state = JobState::FAILED;
         job.note  = "spawn failed";
         return false;
     }
-    (void)reg; // reservado para futuro logging
     return true;
 }
 
-std::string handle_request(JobRegistry& reg, std::string line,
-                           bool& shutdown_flag) {
-    
+std::string handle_request(JobRegistry& reg,
+                           std::string line,
+                           bool& shutdown_flag,
+                           const std::string& data_dir) {
+    while (!line.empty() && (line.back() == '\n' || line.back() == '\r'))
+        line.pop_back();
+
     const auto parts = split_tabs(line);
     if (parts.empty()) return "ERR empty\n";
     const std::string& verb = parts[0];
@@ -85,13 +88,10 @@ std::string handle_request(JobRegistry& reg, std::string line,
         if (parts.size() < 2 || parts[1].empty())
             return "ERR submit requires a command\n";
 
-        // 1. ¿Hay capacidad para ejecutarlo directamente?
         const bool can_spawn = reg.can_spawn();
-        // 2. ¿Hay espacio en cola si no?
         const bool queue_ok  = reg.queue_has_space();
 
         if (!can_spawn && !queue_ok) {
-            // RF-25: rechazo explícito si cola llena y no hay workers libres.
             std::ostringstream o;
             o << "ERR queue full (max_queue_size=" << reg.max_queue_size()
               << ", running=" << reg.count_running()
@@ -107,19 +107,21 @@ std::string handle_request(JobRegistry& reg, std::string line,
         job.received_at_ns = now_ns();
 
         if (can_spawn) {
-            // RF-04: hay slot libre, ejecución inmediata.
             try_spawn(reg, job);
+            logger::info(job.id, "submitted (RUNNING) cmd=" + job.command);
             std::ostringstream o;
             o << "OK id=" << job.id << " pid=" << job.pid
               << " state=" << job_state_to_string(job.state) << "\n";
             reg.add(std::move(job));
+            save_state(reg, data_dir);
             return o.str();
         } else {
-            // RF-03: cola FIFO.
             job.state = JobState::QUEUED;
             const int id = job.id;
             reg.add(std::move(job));
             reg.enqueue(id);
+            logger::info(id, "submitted (QUEUED) cmd=" + job.command);
+            save_state(reg, data_dir);
             std::ostringstream o;
             o << "OK id=" << id << " state=QUEUED\n";
             return o.str();
@@ -168,14 +170,16 @@ std::string handle_request(JobRegistry& reg, std::string line,
         if (!j) return "ERR job not found\n";
 
         if (j->state == JobState::QUEUED) {
-            // Cancelar un trabajo en cola: pasa directo a CANCELED.
             j->state = JobState::CANCELED;
             j->note  = "canceled while queued";
+            logger::warn(j->id, "cancel while QUEUED");
+            save_state(reg, data_dir);
             return "OK cancel requested (QUEUED)\n";
         }
         if (j->state != JobState::RUNNING)
             return "ERR job already terminal\n";
         if (!job_runner::request_cancel(*j)) return "ERR kill failed\n";
+        logger::warn(j->id, "cancel while RUNNING (SIGTERM)");
         return "OK cancel requested (RUNNING)\n";
     }
 
@@ -191,6 +195,7 @@ std::string handle_request(JobRegistry& reg, std::string line,
 
     if (verb == "SHUTDOWN") {
         shutdown_flag = true;
+        logger::info(-1, "shutdown requested");
         return "OK shutting down\n";
     }
 
@@ -201,6 +206,8 @@ std::string handle_request(JobRegistry& reg, std::string line,
 
 int run_daemon() {
     const Config cfg = load_config("config.json");
+    logger::init(cfg.log_file);
+    logger::info(-1, "daemon starting");
     std::fprintf(stderr,
         "[daemon] config: max_workers=%d, max_queue_size=%d, socket=%s\n",
         cfg.max_workers, cfg.max_queue_size, cfg.socket_path.c_str());
@@ -215,20 +222,28 @@ int run_daemon() {
     std::signal(SIGTERM, on_signal);
     std::signal(SIGPIPE, SIG_IGN);
 
-    std::fprintf(stderr, "[daemon] escuchando en %s (pid=%d)\n",
-                 cfg.socket_path.c_str(), (int)::getpid());
-
     JobRegistry reg;
     reg.set_limits(cfg.max_workers, cfg.max_queue_size);
+    const bool loaded = load_state(reg, cfg.data_dir);
+    if (loaded) {
+        logger::info(-1, "state recovered from disk");
+        for (Job* j : reg.by_state(JobState::FAILED)) {
+            if (j->note == "interrupted by restart") {
+                logger::warn(j->id, "recovered: RUNNING -> FAILED (interrupted by restart)");
+            }
+        }
+    }
+
+    std::fprintf(stderr, "[daemon] escuchando en %s (pid=%d)\n",
+                 cfg.socket_path.c_str(), (int)::getpid());
 
     bool shutdown_flag = false;
 
     while (!g_stop && !shutdown_flag) {
-        // 1. Recolectar hijos terminados y escalar cancelaciones.
         job_runner::reap_finished(reg);
         job_runner::escalate_cancels(reg);
+        save_state(reg, cfg.data_dir);
 
-        // 2. Si hay slots libres, desencolar siguientes trabajos.
         while (reg.can_spawn()) {
             const int next_id = reg.dequeue_next();
             if (next_id < 0) break;
@@ -237,31 +252,32 @@ int run_daemon() {
             try_spawn(reg, *j);
         }
 
-        // 3. Esperar nuevas peticiones (100 ms para no bloquear el loop).
         struct pollfd pfd{ listen_fd, POLLIN, 0 };
         const int rv = ::poll(&pfd, 1, 100);
         if (rv <= 0) continue;
 
         const int cfd = ::accept(listen_fd, nullptr, nullptr);
-        ::fcntl(cfd, F_SETFD, FD_CLOEXEC);
         if (cfd < 0) { if (errno == EINTR) continue; break; }
+        ::fcntl(cfd, F_SETFD, FD_CLOEXEC);
 
         std::string req = ipc::recv_line(cfd);
-        const std::string resp = handle_request(reg, req, shutdown_flag);
+        const std::string resp = handle_request(reg, req, shutdown_flag, cfg.data_dir);
         ipc::send_all(cfd, resp);
         ::close(cfd);
     }
 
-    // Cierre: cancelar y recolectar cualquier proceso restante.
     for (Job* j : reg.by_state(JobState::RUNNING))
         job_runner::request_cancel(*j);
-    for (int i = 0; i < 30; ++i) {           // hasta 3 segundos
+    for (int i = 0; i < 30; ++i) {
         job_runner::reap_finished(reg);
         job_runner::escalate_cancels(reg);
         if (reg.count_running() == 0) break;
         ::usleep(100 * 1000);
     }
+    save_state(reg, cfg.data_dir);
 
+    logger::info(-1, "daemon stopping");
+    logger::close();
     ::close(listen_fd);
     ::unlink(cfg.socket_path.c_str());
     std::fprintf(stderr, "[daemon] bye\n");

@@ -1,73 +1,71 @@
 # Registro de uso de IA
 
 Bitácora de interacciones con asistentes de IA usadas durante el desarrollo
-de JobRunner (prompts clave, decisiones sugeridas, y validación humana aplicada).
+de JobRunner. Se registran tres categorías: aceptado, modificado, rechazado.
 
-### Entrada 001 — Rechazo del diseño original de captura de stdout/stderr
+---
 
-- **Contexto:** El motor base original (`src/server.cpp`, commit `a9d1b78`)
-  capturaba stdout y stderr con dos pipes anónimos, pero leía primero
-  `stdout` completo y **después** empezaba a leer `stderr`.
-- **Herramienta:** Asistente IA (auditoría técnica del Hito 1).
-- **Prompt:** "Audita `execute_job()`: ¿es correcto leer stdout y stderr
-  secuencialmente con dos pipes anónimos sin multiplexar?"
-- **Resultado bruto:** Sugerencia de la IA (y aceptada en su momento por
-  el desarrollador) de leer secuencialmente.
-- **Estado:** **RECHAZADO**.
-- **Justificación técnica:** Viola RF-11 y RNF-08. Si el hijo escribe más
-  de `PIPE_BUF` (~64 KiB) en `stderr` mientras el padre aún está bloqueado
-  en `read(stdout_pipe)`, se produce un interbloqueo: el hijo queda
-  bloqueado en `write(stderr_pipe)` y el padre en `read(stdout_pipe)`.
-- **Acción correctiva:** Refactor a bucle `poll()` que multiplexa ambos
-  descriptores (`src/exec_job.cpp`). El caso queda reproducido y
-  verificado por `TC-006`, que provoca explícitamente >PIPE_BUF en ambos
-  streams.
-- **Trazabilidad:** RF-07, RF-11, RNF-08, ADR-0002, TC-006.
+### Entrada 001 — Rechazada: diseño original de captura de stdout/stderr
 
-### Entrada 002 — Estrategia de recuperación ante merge accidental a main
+- **Contexto:** El motor base original capturaba stdout y stderr secuencialmente.
+- **Resultado bruto:** Lectura de stdout completa antes de stderr.
+- **Estado:** RECHAZADO.
+- **Justificación:** Viola RF-11 y RNF-08. Deadlock si el hijo llena el pipe
+  de stderr mientras el padre lee stdout.
+- **Corrección:** `poll()` multiplexando ambos descriptores (TC-006).
 
-- **Contexto:** El PR #8 se mergeó por error a `main` en lugar de `develop`.
-  Se consultó a la IA cómo revertirlo.
-- **Resultado bruto de la IA:** Sugerencia inicial de `git push --force origin main`
-  para devolver `main` al estado previo.
-- **Estado:** **MODIFICADO** por el desarrollador (con guía del Tech Lead).
-- **Justificación técnica:** `main` es rama pública; reescribir su historia
-  puede romper clones y viola RNF-33. Se optó por la estrategia conservadora:
-  aceptar el commit en `main`, fast-forward de `develop` hacia `origin/main`,
-  documentar el incidente (`docs/incidents/INC-001.md`) y activar branch
-  protection para prevenirlo.
-- **Trazabilidad:** RNF-33, INC-001.
+---
 
+### Entrada 002 — Modificada: recuperación tras merge accidental a main
 
-### Entrada 003 — Aceptada con verificación: arquitectura CLI + daemon
+- **Contexto:** El PR #8 se mergeó a `main` en lugar de `develop`.
+- **Resultado bruto:** `git push --force origin main` para revertir.
+- **Estado:** MODIFICADO.
+- **Justificación:** `main` es rama pública; reescribir historia viola RNF-33.
+- **Corrección:** Estrategia conservadora + branch protection (INC-001).
 
-- **Contexto:** El milestone pide "enviar trabajo, consultar estado, listar,
-  cancelar, obtener código de salida" con un binario que se invoca por
-  comandos, estilo `jobrunner submit ...`.
-- **Prompt:** "Diseña la arquitectura mínima cliente/servicio en Linux sin
-  usar TCP, compatible con migración futura a red."
-- **Resultado bruto:** CLI + daemon con socket Unix (`AF_UNIX`),
-  protocolo de una línea por petición, un request = una conexión.
-- **Estado:** **ACEPTADO tras verificación** con TC-002.
-- **Justificación:** Mantiene la semántica prevista para RF-19 (mismos
-  comandos que tendrá el protocolo TCP en Hito 3). Los archivos temporales
-  de captura evitan el deadlock de pipes sin meter `epoll` todavía.
-- **Deuda reconocida:** En Hito 3, sustituir captura a tmp por pipes +
-  `poll()` no bloqueante. Se documentará en ADR.
+---
 
-### Entrada 004 — Modificada: bug de cliente colgado en SUBMIT largo
+### Entrada 003 — Aceptada: arquitectura CLI + daemon
 
-- **Contexto:** El cliente `submit sleep 30` se quedaba colgado esperando
-  la respuesta del daemon, aunque el daemon ya había respondido.
-- **Prompt:** "¿Por qué el cliente no recibe la respuesta al enviar un
-  comando de larga duración?"
-- **Resultado bruto de la IA:** Sugerencia inicial de aumentar timeouts.
-- **Estado:** **MODIFICADO** por el desarrollador (con guía del Tech Lead).
-- **Justificación técnica:** El hijo del `fork()` heredaba los descriptores
-  de socket del daemon (`cfd` y `listen_fd`). Al cerrar el padre su copia,
-  el kernel no cerraba el socket porque el hijo seguía con el suyo abierto.
-  El cliente esperaba EOF que no llegaba.
-- **Acción correctiva:** Marcar los sockets con `FD_CLOEXEC` para que se
-  cierren automáticamente al hacer `execvp()` en el hijo. Dos líneas:
-  `fcntl(fd, F_SETFD, FD_CLOEXEC)` en `listen_unix()` y tras `accept()`.
-- **Trazabilidad:** RF-04, RF-21, RNF-22, TC-002.
+- **Contexto:** El milestone pide un binario con subcomandos (`submit`, etc.).
+- **Prompt:** "Diseña la arquitectura mínima cliente/servicio en Linux sin usar TCP."
+- **Resultado:** CLI + daemon con socket Unix (`AF_UNIX`), protocolo de una
+  línea por petición, un request = una conexión.
+- **Estado:** ACEPTADO tras verificación con TC-002.
+- **Trazabilidad:** RF-19, RF-21, TC-002.
+
+---
+
+### Entrada 004 — Modificada: bug del cliente colgado en SUBMIT largo
+
+- **Contexto:** `submit sleep 300` tardaba 5 minutos en responder.
+- **Resultado bruto:** Aumentar timeouts.
+- **Estado:** MODIFICADO.
+- **Justificación técnica:** El hijo de `fork()` heredaba el socket aceptado
+  y el cliente esperaba EOF hasta que el job terminara.
+- **Corrección:** `FD_CLOEXEC` en `cfd` y `listen_fd`.
+- **Trazabilidad:** INC-002, TC-002.
+
+---
+
+### Entrada 005 — Aceptada: cola FIFO con límite de workers
+
+- **Contexto:** Implementar la cola del Hito 2 sin librerías externas.
+- **Prompt:** "Diseña la cola y el control de workers en C++17."
+- **Resultado:** `std::deque<int>` de IDs, `count_running()`, `count_queued()`,
+  `can_spawn()`, `queue_has_space()`, `dequeue_next()`.
+- **Estado:** ACEPTADO tras verificación con TC-002 y TC-016.
+- **Trazabilidad:** RF-03, RF-05, RF-23, RF-25.
+
+---
+
+### Entrada 006 — Modificada: bug del `set_limits` que ignoraba max_queue_size
+
+- **Contexto:** El test TC-016 fallaba porque el daemon no rechazaba con cola llena.
+- **Resultado bruto de la IA:** `max_queue_size = ...` (sin guion bajo).
+- **Estado:** MODIFICADO.
+- **Justificación técnica:** Asignaba al parámetro local, no al miembro
+  `max_queue_size_`. El miembro siempre conservaba el default (100).
+- **Corrección:** `max_queue_size_ = max_queue_size > 0 ? max_queue_size : 1;`
+- **Trazabilidad:** RF-25, TC-016.
