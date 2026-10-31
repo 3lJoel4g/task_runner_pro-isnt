@@ -28,7 +28,7 @@ for tc in "$ROOT_DIR"/verif/scripts/tc-*.sh; do
     name="$(basename "$tc" .sh)"
     log="$RESULT_DIR/$name.log"
     echo "==> $name"
-    if bash "$tc" "$ROOT_DIR" >"$log" 2>&1; then
+    if timeout 60 bash "$tc" "$ROOT_DIR" >"$log" 2>&1; then
         echo "    PASS"
         PASSED=$((PASSED + 1))
     else

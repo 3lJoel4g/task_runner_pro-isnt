@@ -43,3 +43,25 @@ Escucha en `/tmp/jobrunner.sock` (configurable con `$JOBRUNNER_SOCKET`).
 ### Pruebas
 
     make -C src test
+
+## Hito 2 — Estado
+
+- **Cola FIFO** con límite configurable de concurrencia.
+- **Persistencia atómica** en `data/jobs.json` con `tmp + fsync + rename`.
+- **Recuperación** tras caída: `RUNNING` → `FAILED` con nota.
+- **Bitácora** en `jobrunner.log` con timestamp e ID.
+- **Rechazo explícito** de cola llena con diagnóstico.
+- **Cancelación escalonada** SIGTERM → SIGKILL.
+
+**Suite:** `make -C src test` → **PASS=6 FAIL=0**
+**Tag:** `v0.2.0` (sugerido)
+
+## Comandos
+
+    server daemon
+    server submit <cmd> [args...]
+    server status <id>
+    server list [STATE]
+    server cancel <id>
+    server health
+    server shutdown

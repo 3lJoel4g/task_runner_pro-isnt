@@ -4,7 +4,7 @@
 
 void JobRegistry::set_limits(int max_workers, int max_queue_size) {
     max_workers_   = max_workers   > 0 ? max_workers   : 1;
-    max_queue_size = max_queue_size > 0 ? max_queue_size : 1;
+    max_queue_size_ = max_queue_size > 0 ? max_queue_size : 1;
 }
 
 int JobRegistry::next_id() { return ++next_id_; }
