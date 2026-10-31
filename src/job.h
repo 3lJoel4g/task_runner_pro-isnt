@@ -38,6 +38,7 @@ struct Job {
     std::string stderr_path;
     std::string stdout_data;
     std::string stderr_data;
+    std::string note; // diagnóstico: cancelado en cola, spawn failed, etc.
 };
 
 #endif // JOB_H
