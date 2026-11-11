@@ -15,6 +15,7 @@ cat > "$CONFIG" <<JSON
 {
   "max_workers": 1,
   "max_queue_size": 2,
+  "max_timeout_sec": 0,
   "data_dir": "$DATA_DIR",
   "log_file": "/tmp/jobrunner-test-$$.log",
   "socket_path": "$SOCK"
